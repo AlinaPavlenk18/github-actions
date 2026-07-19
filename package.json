@@ -1,0 +1,8 @@
+{
+  "name": "github-action-mod1",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "mkdir -p dist && cp src/textUtils.js dist/textUtils.js",
+    "test": "node test/textUtils.test.js"
+  }
+}
