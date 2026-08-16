@@ -2,7 +2,18 @@
   "name": "github-action-mod1",
   "version": "1.0.0",
   "scripts": {
+    "lint": "eslint src/ test/",
     "build": "mkdir -p dist && cp src/textUtils.js dist/textUtils.js",
-    "test": "node test/textUtils.test.js"
+    "test": "node test/textUtils.test.js",
+    "test:integration": "node test/integration/db.test.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "dotenv": "^17.4.2",
+    "eslint": "^10.8.0",
+    "globals": "^17.7.0"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
   }
 }
