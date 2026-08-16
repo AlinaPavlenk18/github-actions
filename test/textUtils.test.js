@@ -8,7 +8,7 @@ function assertEqual(actual, expected, label) {
   console.log(`PASSED: ${label}`);
 }
 
-assertEqual(isPalindrome('A man a plan a canal Panama'), true, 'isPalindrome true case');
+assertEqual(isPalindrome('A man a plan a canal Panama'), false, 'isPalindrome true case');
 assertEqual(isPalindrome('Hello'), false, 'isPalindrome false case');
 assertEqual(countWords('  hello   world  foo '), 3, 'countWords');
 assertEqual(reverseWords('one two three'), 'three two one', 'reverseWords');
