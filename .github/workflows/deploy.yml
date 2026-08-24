@@ -1,0 +1,33 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target_environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show deployment context
+        run: |
+          echo "Project: ${{ vars.PROJECT_NAME }}"
+          echo "Deploying to: ${{ inputs.target_environment }}"
+          echo "Target URL: ${{ vars.APP_URL }}"
+
+      - name: Simulate deployment
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          echo "Deploying to ${{ vars.APP_URL }} using a token (masked in logs)..."
+          echo "Deployment simulated successfully."
