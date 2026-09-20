@@ -1,0 +1,31 @@
+name: Reusable Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
+    secrets:
+      deploy_token:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show deployment context
+        run: |
+          echo "Project: ${{ vars.PROJECT_NAME }}"
+          echo "Deploying to: ${{ inputs.environment_name }}"
+          echo "Target URL: ${{ vars.APP_URL }}"
+
+      - name: Simulate deployment
+        env:
+          DEPLOY_TOKEN: ${{ secrets.deploy_token }}
+        run: |
+          echo "Deploying to ${{ vars.APP_URL }}..."
+          echo "Deployment simulated successfully."
