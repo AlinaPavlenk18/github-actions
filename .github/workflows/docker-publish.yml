@@ -60,5 +60,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             APP_VERSION=${{ github.sha }}
+          secrets: |
+            npm_token=${{ secrets.DOCKERHUB_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
