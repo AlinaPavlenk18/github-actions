@@ -5,6 +5,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+RUN --mount=type=secret,id=npm_token \
+    if [ -f /run/secrets/npm_token ]; then \
+      echo "Secret is available during this RUN step only (not persisted)"; \
+    fi
+
 COPY . .
 RUN npm run build
 
