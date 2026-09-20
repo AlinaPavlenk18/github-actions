@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:25-alpine AS build
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN --mount=type=secret,id=npm_token \
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS runtime
+FROM node:25-alpine AS runtime
 
 RUN apk upgrade --no-cache
 
