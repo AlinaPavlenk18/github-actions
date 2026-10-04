@@ -1,0 +1,64 @@
+name: Deploy Runner Demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-bundle
+          path: dist/
+
+  deploy-self-hosted:
+    runs-on: [self-hosted, demo-vm]
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-bundle
+          path: ./app-bundle
+
+      - name: Deploy locally (runner lives on the target VM)
+        run: |
+          mkdir -p /opt/gha-ci-lab/current
+          cp -r ./app-bundle/* /opt/gha-ci-lab/current/
+          node -e "const m = require('/opt/gha-ci-lab/current/textUtils.js'); console.log('isPalindrome(racecar) =', m.isPalindrome('racecar'));"
+
+  deploy-ssh:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-bundle
+          path: ./app-bundle
+
+      - name: Copy artifact to remote VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "app-bundle/*"
+          target: "/opt/gha-ci-lab/current"
+          strip_components: 1
+
+      - name: Run remote check over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            node -e "const m = require('/opt/gha-ci-lab/current/textUtils.js'); console.log('isPalindrome(racecar) =', m.isPalindrome('racecar'));"
