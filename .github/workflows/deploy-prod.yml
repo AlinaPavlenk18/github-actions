@@ -1,0 +1,31 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (e.g. latest, v1.1.0, sha-abc1234)'
+        required: true
+        default: 'latest'
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, prod-app]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write deploy env file
+        run: echo "IMAGE_TAG=${{ inputs.image_tag }}" > deploy/.env
+
+      - name: Pull and start app
+        working-directory: deploy
+        run: |
+          docker compose pull
+          docker compose up -d
+          docker compose ps
+
+      - name: Smoke check
+        run: |
+          sleep 2
+          curl -fsS http://127.0.0.1:3000/health
