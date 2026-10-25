@@ -33,4 +33,4 @@ ENV APP_VERSION=${APP_VERSION}
 
 EXPOSE 3000
 
-CMD ["node", "dist/textUtils.js"]
+CMD ["node", "dist/server.js"]
