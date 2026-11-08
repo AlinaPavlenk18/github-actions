@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci || npm install
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: build-output
           path: dist/
