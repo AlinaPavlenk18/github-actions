@@ -1,0 +1,29 @@
+name: gha-db
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gha-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_DB: notes
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d notes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
