@@ -101,7 +101,7 @@ docker rm -f -v pg-restore-test
 | Data after `docker compose down` / `up` (new container ID) | `count = 101`, same checksum |
 | `ss -ltnp` on VM | `127.0.0.1:5432` |
 | `Test-NetConnection <VM_IP> -Port 5432` from admin laptop | `TcpTestSucceeded : False` |
-| DBeaver via SSH tunnel | connected, `count = 101` |
+| psql via SSH tunnel | connected, `count = 101` |
 | Restore of `notes_2026-11-08_1203.dump` into fresh container | `count = 101`, checksum `380d37ade1ec3337b1764f9f7e06e874` (matches source) |
 
 ## Trade-off
