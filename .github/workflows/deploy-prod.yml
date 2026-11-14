@@ -12,20 +12,38 @@ jobs:
   deploy:
     runs-on: [self-hosted, prod-app]
     environment: production
+    env:
+      AWS_REGION: eu-central-1
+      SECRET_PARAM: /gha-ci-lab/prod/db/app_password
     steps:
       - uses: actions/checkout@v4
 
       - name: Write deploy env file
         run: echo "IMAGE_TAG=${{ inputs.image_tag }}" > deploy/.env
 
+      - name: Fetch runtime secret from SSM Parameter Store
+        run: |
+          set -euo pipefail
+          PW=$(aws ssm get-parameter --name "$SECRET_PARAM" --with-decryption \
+                 --query Parameter.Value --output text)
+          echo "::add-mask::$PW"
+          install -d -m 700 "$HOME/app-secrets"
+          ( umask 077; printf '%s' "$PW" > "$HOME/app-secrets/db_app_password" )
+          unset PW
+          VER=$(aws ssm get-parameter --name "$SECRET_PARAM" \
+                  --query Parameter.Version --output text)
+          echo "DB_SECRET_VERSION=$VER" >> deploy/.env
+          echo "Fetched $SECRET_PARAM (version $VER)"
+
       - name: Pull and start app
         working-directory: deploy
         run: |
           docker compose pull
-          docker compose up -d
+          docker compose up -d --force-recreate
           docker compose ps
 
       - name: Smoke check
         run: |
-          sleep 2
+          sleep 3
           curl -fsS http://127.0.0.1:3000/health
+          curl -fsS http://127.0.0.1:3000/health/db
