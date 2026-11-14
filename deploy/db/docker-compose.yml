@@ -27,3 +27,7 @@ volumes:
 secrets:
   db_password:
     file: ./secrets/db_password.txt
+
+networks:
+  dbnet:
+    name: gha-dbnet

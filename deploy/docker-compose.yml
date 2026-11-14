@@ -6,4 +6,23 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      - PORT=3000
+      PORT: "3000"
+      PGHOST: gha-postgres
+      PGPORT: "5432"
+      PGUSER: notes_app
+      PGDATABASE: notes
+      PGPASSWORD_FILE: /run/secrets/db_app_password
+      DB_SECRET_VERSION: ${DB_SECRET_VERSION:-unknown}
+    secrets:
+      - db_app_password
+    networks:
+      - dbnet
+
+secrets:
+  db_app_password:
+    file: ${HOME}/app-secrets/db_app_password  
+
+networks:
+  dbnet:
+    external: true
+    name: gha-dbnet
