@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "lint": "eslint src/ test/",
-    "build": "mkdir -p dist && cp src/textUtils.js dist/textUtils.js && cp src/server.js dist/server.js",
+    "build": "mkdir -p dist && cp src/textUtils.js src/server.js src/config.js dist/",
     "test": "node test/textUtils.test.js",
     "test:integration": "node test/integration/db.test.js"
   },
