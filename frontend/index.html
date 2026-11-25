@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>gha-ci-lab · static frontend</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; color: #1f2328; line-height: 1.5; }
+    code { background: #f6f8fa; padding: .1rem .35rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>gha-ci-lab</h1>
+  <p>Static frontend deployed to Azure Storage static website hosting by GitHub Actions, authenticated with OIDC (no storage keys).</p>
+  <p>Commit: <code id="commit">loading…</code><br>Built at: <code id="built">loading…</code></p>
+  <script>
+    fetch('version.json', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((v) => {
+        document.getElementById('commit').textContent = v.commit;
+        document.getElementById('built').textContent = v.built_at;
+      })
+      .catch(() => { document.getElementById('commit').textContent = 'unknown'; });
+  </script>
+</body>
+</html>
