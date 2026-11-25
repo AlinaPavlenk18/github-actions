@@ -1,0 +1,45 @@
+name: Azure Static Site
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/azure-static-site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: azure-static
+      url: ${{ vars.SITE_URL }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build site
+        run: |
+          mkdir -p site
+          cp -r frontend/. site/
+          printf '{"commit":"%s","built_at":"%s"}\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > site/version.json
+      - name: Azure login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Upload to $web (Entra auth, no account key)
+        run: |
+          az storage blob upload-batch \
+            --account-name "${{ vars.STORAGE_ACCOUNT }}" \
+            --auth-mode login \
+            --destination '$web' \
+            --source site \
+            --overwrite
+      - name: Smoke check
+        run: curl -fsS --retry 5 --retry-delay 5 "${{ vars.SITE_URL }}version.json"
