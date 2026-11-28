@@ -1,0 +1,53 @@
+name: AWS Static Site (S3 + CloudFront)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/aws-static-site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: aws-static
+      url: ${{ vars.SITE_URL }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build site
+        run: |
+          mkdir -p site
+          cp -r frontend/. site/
+          printf '{"commit":"%s","built_at":"%s"}\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > site/version.json
+
+      - name: Configure AWS credentials (OIDC, static role)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync site/ "s3://${{ vars.S3_BUCKET }}" --delete --cache-control "public,max-age=60"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*" --query Invalidation.Id --output text
+
+      - name: Smoke check
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS "${{ vars.SITE_URL }}/version.json" | grep -q "$GITHUB_SHA"; then echo "OK"; exit 0; fi
+            sleep 10
+          done
+          echo "CloudFront does not serve $GITHUB_SHA yet"; exit 1
