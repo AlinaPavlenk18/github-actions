@@ -1,0 +1,114 @@
+name: AWS ECR + ECS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'package*.json'
+      - 'Dockerfile'
+      - 'deploy/ecs/**'
+      - '.github/workflows/aws-ecs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aws-ecs
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPOSITORY: gha-ci-lab
+  ECS_CLUSTER: gha-ci-lab
+  ECS_SERVICE: gha-ci-lab-svc
+  CONTAINER_NAME: app
+  TASK_DEFINITION: deploy/ecs/task-definition.json
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC, ECR push role)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ECR_PUSH_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: false
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$ECR_REPOSITORY:sha-${GITHUB_SHA::7}"
+          docker build --build-arg APP_VERSION="$GITHUB_SHA" -t "$IMAGE" .
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Trivy gate (block on fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.image.outputs.image }}
+          format: table
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Push to ECR
+        run: docker push "${{ steps.image.outputs.image }}"
+
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment:
+      name: aws-production
+      url: ${{ vars.APP_URL }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC, ECS deploy role)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: false
+
+      - name: Render task definition with new image
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ needs.build-push.outputs.image }}
+
+      - name: Deploy to ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: ${{ env.ECS_SERVICE }}
+          wait-for-service-stability: true
+
+      - name: Smoke check (new version is live)
+        run: |
+          curl -fsS --retry 10 --retry-delay 10 --retry-all-errors "${{ vars.APP_URL }}/health"
+          for i in $(seq 1 12); do
+            if curl -fsS "${{ vars.APP_URL }}/" | grep -q "$GITHUB_SHA"; then echo "OK: $GITHUB_SHA is live"; exit 0; fi
+            sleep 10
+          done
+          echo "Deployed version is not $GITHUB_SHA"; exit 1
