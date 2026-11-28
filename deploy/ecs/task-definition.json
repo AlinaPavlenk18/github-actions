@@ -1,0 +1,27 @@
+{
+  "family": "gha-ci-lab",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": { "operatingSystemFamily": "LINUX", "cpuArchitecture": "X86_64" },
+  "executionRoleArn": "arn:aws:iam::880561240946:role/gha-ci-lab-ecs-task-execution",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "replaced-by-workflow",
+      "essential": true,
+      "portMappings": [{ "containerPort": 3000, "protocol": "tcp" }],
+      "environment": [{ "name": "PORT", "value": "3000" }],
+      "readonlyRootFilesystem": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/gha-ci-lab",
+          "awslogs-region": "eu-central-1",
+          "awslogs-stream-prefix": "app"
+        }
+      }
+    }
+  ]
+}
